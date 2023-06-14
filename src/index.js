@@ -1,87 +1,125 @@
-import * as Notiflix from 'notiflix';
-import { fetchForm, fetchPhotocard, fetchLoadmore } from './api';
+import axios from 'axios';
+import Notiflix from 'notiflix';
 
-const searchForm = document.querySelector('.search-form');
-const galleryEl = document.querySelector('.gallery');
-const loader = document.querySelector('.loader');
-const errorElement = document.querySelector('.error');
-const fetchLoadMoreBtn = document.querySelector('.load-more');
+const API_KEY = '37145039-d4ad8d6ab2b85cf5d231e1aa0';
+const API_URL = 'https://pixabay.com/api/';
+
+const searchForm = document.getElementById('search-form');
+const gallery = document.querySelector('.gallery');
+const loadMoreBtn = document.querySelector('.load-more');
 let page = 1;
-const perPage = 40;
+let searchQuery = '';
 
-(async () => {
-  try {
-    loader.classList.add('hidden');
-    const form = await fetchForm();
-    console.log(form);
-    const options = [];
-    form.forEach(form => {});
-    const breedSelect = document.querySelector('.breed-select');
-    breedSelect.append(...options);
-  } catch (error) {
-    console.error('Error:', error);
-    errorElement.classList.remove('hidden');
-  }
-})();
-
-searchForm.addEventListener('change', async e => {
-  const selectedOption = e.target.value;
-  if (selectedOption) {
-    loader.classList.remove('hidden');
-    try {
-      const photoCardData = await fetchPhotocard(selectedOption);
-      loader.classList.add('hidden');
-      console.log(photoCardData);
-      const galleryData = photoCardData.gallery[0];
-      galleryEl.innerHTML = `
-        <div class="photo-card">
-          <img src="${photoCardData.largeImageURL}" alt="${photoCardData.tags}" loading="lazy" />
-          <div class="info">
-            <p class="info-item">
-              <b>Likes:</b> ${photoCardData.likes}
-            </p>
-            <p class="info-item">
-              <b>Views:</b> ${photoCardData.views}
-            </p>
-            <p class="info-item">
-              <b>Comments:</b> ${photoCardData.comments}
-            </p>
-            <p class="info-item">
-              <b>Downloads:</b> ${photoCardData.downloads}
-            </p>
-          </div>
-        </div>`;
-      loader.classList.add('hidden');
-      galleryEl.classList.remove('hidden');
-    } catch (error) {
-      console.error('Error:', error);
-      Notiflix.Notify.failure('An error occurred. Please try again later.');
-      errorElement.classList.remove('hidden');
-    }
-  }
+searchForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  page = 1;
+  searchQuery = e.target.elements.searchQuery.value;
+  clearGallery();
+  await searchImages();
+  toggleLoadMoreButton();
 });
 
-fetchLoadMoreBtn.addEventListener('click', async () => {
-  loader.classList.add('hidden');
-  if (page > totalHits) {
-    Notiflix.Notify.info(
-      "We're sorry, but you've reached the end of search results."
+loadMoreBtn.addEventListener('click', async () => {
+  page++;
+  await searchImages();
+});
+
+async function searchImages() {
+  try {
+    const response = await axios.get(API_URL, {
+      params: {
+        key: API_KEY,
+        q: searchQuery,
+        image_type: 'photo',
+        orientation: 'horizontal',
+        safesearch: true,
+        page: page,
+        per_page: 40,
+      },
+    });
+
+    const images = response.data.hits;
+    if (images.length === 0) {
+      Notiflix.Notify.failure(
+        'Sorry, there are no images matching your search query. Please try again.'
+      );
+    } else {
+      displayImages(images);
+      if (page === 1) {
+        toggleLoadMoreButton();
+      }
+      if (images.length < response.data.totalHits) {
+        toggleLoadMoreButton(true);
+      } else {
+        toggleLoadMoreButton(false);
+        Notiflix.Notify.info(
+          "We're sorry, but you've reached the end of search results."
+        );
+      }
+    }
+  } catch (error) {
+    console.log(error);
+    Notiflix.Notify.failure(
+      'An error occurred while fetching images. Please try again later.'
     );
-    fetchLoadMoreBtn.style.display = 'none';
-    return;
   }
+}
 
-  try {
-    const loadMore = await fetchLoadmore();
-    renderLoadMore(loadMore);
-    page++;
+function displayImages(images) {
+  const fragment = document.createDocumentFragment();
 
-    if (page > 1) {
-      fetchLoadMoreBtn.style.display = 'block';
-      fetchLoadMoreBtn.textContent = 'Load more';
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    Notiflix.Notify.failure('An error occurred while loading more images.');
-  }
-});
+  images.forEach(image => {
+    const card = createImageCard(image);
+    fragment.appendChild(card);
+  });
+
+  gallery.appendChild(fragment);
+}
+
+function createImageCard(image) {
+  const card = document.createElement('div');
+  card.className = 'photo-card';
+
+  const img = document.createElement('img');
+  img.src = image.webformatURL;
+  img.alt = image.tags;
+  img.loading = 'lazy';
+  card.appendChild(img);
+
+  const info = document.createElement('div');
+  info.className = 'info';
+
+  const likes = createInfoItem('Likes', image.likes);
+  info.appendChild(likes);
+
+  const views = createInfoItem('Views', image.views);
+  info.appendChild(views);
+
+  const comments = createInfoItem('Comments', image.comments);
+  info.appendChild(comments);
+
+  const downloads = createInfoItem('Downloads', image.downloads);
+  info.appendChild(downloads);
+
+  card.appendChild(info);
+
+  return card;
+}
+
+function createInfoItem(label, value) {
+  const p = document.createElement('p');
+  p.className = 'info-item';
+  const b = document.createElement('b');
+  b.textContent = label;
+  p.appendChild(b);
+  p.insertAdjacentText('beforeend', `: ${value}`);
+  return p;
+}
+
+function clearGallery() {
+  gallery.innerHTML = '';
+}
+
+function toggleLoadMoreButton(show = false) {
+  loadMoreBtn.style.display = show ? 'block' : 'none';
+}

@@ -1,2 +1,39 @@
 @import './common';
 @import './example';
+.body {
+  background-color: gradient(rgba(128, 128, 128, 0.945));
+}
+
+.photo-card {
+  display: inline-block;
+  width: 300px;
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+
+.photo-card img {
+  width: 100%;
+  height: auto;
+}
+
+.info {
+  margin-top: 10px;
+}
+
+.info-item {
+  margin-bottom: 5px;
+}
+
+.load-more {
+  display: none;
+}
+.search-form {
+  align-items: center;
+  display: flex;
+  margin-left: auto;
+  padding-left: 500px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  background-color: rgb(67, 67, 238);
+}
