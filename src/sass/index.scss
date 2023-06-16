@@ -3,13 +3,17 @@
 .body {
   background-color: gradient(rgba(128, 128, 128, 0.945));
 }
+.gallery {
+  display: flex;
+  flex-wrap: wrap;
+}
 
 .photo-card {
-  display: inline-block;
-  width: 300px;
+  flex: 0 0 300px;
   margin: 10px;
   padding: 10px;
   border: 1px solid #ccc;
+  box-sizing: border-box;
 }
 
 .photo-card img {

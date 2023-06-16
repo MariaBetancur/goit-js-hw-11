@@ -1,8 +1,5 @@
-import axios from 'axios';
 import Notiflix from 'notiflix';
-
-const API_KEY = '37145039-d4ad8d6ab2b85cf5d231e1aa0';
-const API_URL = 'https://pixabay.com/api/';
+import { searchImages } from './api';
 
 const searchForm = document.getElementById('search-form');
 const gallery = document.querySelector('.gallery');
@@ -10,60 +7,40 @@ const loadMoreBtn = document.querySelector('.load-more');
 let page = 1;
 let searchQuery = '';
 
+const handleLoadImages = imagesData => {
+  const images = imagesData.hits;
+  if (images.length === 0) {
+    Notiflix.Notify.failure(
+      'Sorry, there are no images matching your search query. Please try again.'
+    );
+  } else {
+    displayImages(images);
+    const totalpages = Math.ceil(imagesData.totalHits / 40);
+    if (page < totalpages) {
+      toggleLoadMoreButton(true);
+    } else {
+      toggleLoadMoreButton(false);
+      Notiflix.Notify.info(
+        "We're sorry, but you've reached the end of search results."
+      );
+    }
+  }
+};
+
 searchForm.addEventListener('submit', async e => {
   e.preventDefault();
   page = 1;
   searchQuery = e.target.elements.searchQuery.value;
   clearGallery();
-  await searchImages();
-  toggleLoadMoreButton();
+  const imagesData = await searchImages(page, searchQuery);
+  handleLoadImages(imagesData);
 });
 
 loadMoreBtn.addEventListener('click', async () => {
   page++;
-  await searchImages();
+  const imagesData = await searchImages(page, searchQuery);
+  handleLoadImages(imagesData);
 });
-
-async function searchImages() {
-  try {
-    const response = await axios.get(API_URL, {
-      params: {
-        key: API_KEY,
-        q: searchQuery,
-        image_type: 'photo',
-        orientation: 'horizontal',
-        safesearch: true,
-        page: page,
-        per_page: 40,
-      },
-    });
-
-    const images = response.data.hits;
-    if (images.length === 0) {
-      Notiflix.Notify.failure(
-        'Sorry, there are no images matching your search query. Please try again.'
-      );
-    } else {
-      displayImages(images);
-      if (page === 1) {
-        toggleLoadMoreButton();
-      }
-      if (images.length < response.data.totalHits) {
-        toggleLoadMoreButton(true);
-      } else {
-        toggleLoadMoreButton(false);
-        Notiflix.Notify.info(
-          "We're sorry, but you've reached the end of search results."
-        );
-      }
-    }
-  } catch (error) {
-    console.log(error);
-    Notiflix.Notify.failure(
-      'An error occurred while fetching images. Please try again later.'
-    );
-  }
-}
 
 function displayImages(images) {
   const fragment = document.createDocumentFragment();
