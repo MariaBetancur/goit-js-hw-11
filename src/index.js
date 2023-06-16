@@ -16,52 +16,27 @@ searchForm.addEventListener('submit', async e => {
   searchQuery = e.target.elements.searchQuery.value;
   clearGallery();
   await searchImages();
-  toggleLoadMoreButton();
 });
 
 loadMoreBtn.addEventListener('click', async () => {
   page++;
   await searchImages();
 });
-
-async function searchImages() {
+export async function fetchLoadmore(searchQuery, page) {
   try {
-    const response = await axios.get(API_URL, {
-      params: {
-        key: API_KEY,
-        q: searchQuery,
-        image_type: 'photo',
-        orientation: 'horizontal',
-        safesearch: true,
-        page: page,
-        per_page: 40,
-      },
-    });
-
-    const images = response.data.hits;
-    if (images.length === 0) {
-      Notiflix.Notify.failure(
+    const response = await axios.get(
+      `https://pixabay.com/api/?key=37145039-d4ad8d6ab2b85cf5d231e1aa0&q=${encodeURIComponent(
+        searchQuery
+      )}&image_type=photo&orientation=horizontal&safesearch=true&page=${page}&per_page=${perPage}`
+    );
+    if (!response.ok) {
+      throw new Error(
         'Sorry, there are no images matching your search query. Please try again.'
       );
-    } else {
-      displayImages(images);
-      if (page === 1) {
-        toggleLoadMoreButton();
-      }
-      if (images.length < response.data.totalHits) {
-        toggleLoadMoreButton(true);
-      } else {
-        toggleLoadMoreButton(false);
-        Notiflix.Notify.info(
-          "We're sorry, but you've reached the end of search results."
-        );
-      }
     }
+    return response.json();
   } catch (error) {
-    console.log(error);
-    Notiflix.Notify.failure(
-      'An error occurred while fetching images. Please try again later.'
-    );
+    throw new Error('An error occurred while fetching the loadmore data.');
   }
 }
 
